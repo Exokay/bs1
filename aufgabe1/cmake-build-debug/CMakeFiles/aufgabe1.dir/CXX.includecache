@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/tobiasseemann/Desktop/bs1/aufgabe1/cmake-build-debug/waow.cpp
+stdio.h
+-
+string.h
+-
+stdlib.h
+-
+

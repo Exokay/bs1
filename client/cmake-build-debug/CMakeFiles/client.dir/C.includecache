@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/tobiasseemann/Desktop/bs1/client/main.c
+sys/socket.h
+-
+sys/types.h
+-
+netinet/in.h
+-
+netdb.h
+-
+stdio.h
+-
+string.h
+-
+stdlib.h
+-
+unistd.h
+-
+errno.h
+-
+arpa/inet.h
+-
+
