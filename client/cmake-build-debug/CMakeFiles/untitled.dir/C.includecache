@@ -6,25 +6,21 @@
 
 #IncludeRegexTransform: 
 
-/Users/tobiasseemann/Desktop/bs1/client/main.c
-sys/socket.h
--
-sys/types.h
--
-netinet/in.h
--
-netdb.h
--
+/Users/tobiasseemann/Desktop/bs1/untitled/main.c
 stdio.h
--
-string.h
 -
 stdlib.h
 -
 unistd.h
 -
-errno.h
+string.h
 -
-arpa/inet.h
+sys/types.h
+-
+sys/socket.h
+-
+netinet/in.h
+-
+netdb.h
 -
 
