@@ -1,4 +1,4 @@
-# Install script for directory: /Users/tobiasseemann/Desktop/bs1/untitled
+# Install script for directory: /Users/tobiasseemann/Desktop/bs1/bs1/client
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -35,5 +35,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/Users/tobiasseemann/Desktop/bs1/untitled/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/Users/tobiasseemann/Desktop/bs1/bs1/client/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
