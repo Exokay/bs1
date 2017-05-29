@@ -14,17 +14,50 @@ socklen_t clilen;
 char buffer[256];
 struct sockaddr_in serv_addr, cli_addr;
 int n;
-int portno = 6222;
+int portno = 6669;
+char *speicher[20];
 
+char *put(char *key, char *value, char *res) {
+    int ikey = atoi(key);
+    if (!speicher[ikey]) {
+        speicher[ikey] = value;
+        return 0;
+    } else {
+        res = speicher[ikey];
+        speicher[ikey] = value;
+        return res;
+    }
 
-void error(const char *msg)
-{
+}
+
+char *get(char *key, char *res) {
+    int ikey = atoi(key);
+    if (speicher[ikey]) {
+        res = speicher[ikey];
+
+    } else {
+        res = 0;
+    }
+    return res;
+}
+
+char *delete(char *key, char *res) {
+    int ikey = atoi(key);
+    if (speicher[ikey]) {
+        res = speicher[ikey];
+        speicher[ikey] = 0;
+    } else {
+        res = 0;
+    }
+    return res;
+}
+
+void error(const char *msg) {
     perror(msg);
     exit(1);
 }
 
-void socketconstructor ()
-{
+void socketconstructor() {
     portno++;
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
@@ -40,78 +73,116 @@ void socketconstructor ()
     if (bind(sockfd, (struct sockaddr *) &serv_addr,
              sizeof(serv_addr)) < 0)
         error("ERROR on binding");
-    listen(sockfd,5);
+    listen(sockfd, 5);
     clilen = sizeof(cli_addr);
-    printf("%i \n",portno);
+    printf("%i \n", portno);
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
     socketconstructor();
 
-    while(1) {
-            newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr,  &clilen);
-            if (newsockfd < 0) {
-                error("ERROR on accept");
-            } else {
-                pid_t pid = fork();
-                if(pid == 0) {
-                    //socketconstructor();
-                    bzero(buffer,256);
-                    int itest = 1;
-                    while(itest) {
-                        int count = recv(newsockfd,buffer,20,0);
-                        if (count == -1)
-                        {
-                            perror("recv"); // please improve this message
-                            close(newsockfd);
-                            itest = 0;
+    while (1) {
+        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+        if (newsockfd < 0) {
+            error("ERROR on accept");
+        } else {
+            pid_t pid = fork();
+            if (pid == 0) {
+                //socketconstructor(); not needed anymore since we are forking after accept without creating a new socket
+                int itest = 1;
+
+                while (itest) {
+                    bzero(buffer, 256);
+                    int count = recv(newsockfd, buffer, 20, 0);
+                    if (count == -1) {
+                        perror("recv"); // please improve this message
+                        close(newsockfd);
+                        itest = 0;
+                    } else if (count == 0) {
+                        // peer has closed the connection
+                        itest = 0;
+                        close(newsockfd);
+                    } else {
+
+                        char *token;
+                        int iC = 0;
+                        char *cRes = 0;
+                        char *cKey = 0;
+                        char *cVar = 0;
+
+                        if (strstr(buffer, "get") != 0 || strstr(buffer, "GET") != 0) {
+                            printf("TEST");
+                            token = strtok(buffer, " ");
+                            while (token != NULL) {
+
+                                if (strstr(token, "get") || strstr(token, "GET") || iC > 0) {
+                                    token = strtok(NULL, " ");
+                                }
+                                if (iC == 0) {
+                                    cKey = token;
+                                    token = strtok(NULL, " ");
+                                    iC++;
+                                }
+                            }
+                            get(cKey, cRes);
+
+                            printf("%s", cRes);
                         }
-                        else if (count == 0)
-                        {
-                            // peer has closed the connection
-                            itest = 0;
-                            close(newsockfd);
+
+                        if (strstr(buffer, "put") != 0 || strstr(buffer, "PUT") != 0) {
+                            printf("lul");
+                            token = strtok(buffer, " ");
+                            while (token != NULL) {
+
+                                if (strstr(token, "put") || strstr(token, "put") || iC > 1) {
+                                    token = strtok(NULL, " ");
+                                }
+                                if (iC == 0) {
+                                    cKey = token;
+                                    token = strtok(NULL, " ");
+                                    iC++;
+                                } else if (iC == 1) {
+                                    cVar = token;
+
+                                    token = strtok(NULL, " ");
+                                    iC++;
+                                }
+                            }
+                            printf("%s\n%s\n", cKey, cVar);
+                            cRes = put(cKey, cVar, cRes);
+                            printf("%s", cRes);
+
+                            //split buffer now to get the values.
+                        } else if (strstr(buffer, "del") != 0 || strstr(buffer, "DEL") != 0) {
+                            token = strtok(buffer, " ");
+                            while (token != NULL) {
+
+                                if (strstr(token, "del") || strstr(token, "DEL") || iC > 0) {
+                                    token = strtok(NULL, " ");
+                                }
+                                if (iC == 0) {
+                                    cKey = token;
+                                    token = strtok(NULL, " ");
+                                    iC++;
+                                }
+                            }
+                            printf("%s", cKey);
                         }
-                        else
-                        {
-                            printf("Buffer is %.*s\n",count,buffer);
-                        }
+                        //printf("%.*s\n",count,buffer);
                     }
-
-                    char *p;
-
-                    p = strtok(buffer, " ");
-                    if(strcmp(p,"put") == 0) {
-                        p = strtok(NULL, " ");
-                        printf("test und waow %s", p);
-                        n = write(newsockfd,"You didn't set all Parameters!",30);
-                        if (n < 0) {
-                            error("ERROR writing to socket");
-                        }
-                    }
-
-
-                    if (n < 0) {
-                        error("ERROR writing to socket");
-                    }
-                    close(newsockfd);
-                } else if (pid > 0) {
-                    //elternprozess
-
                 }
+
+
+                if (n < 0) {
+                    error("ERROR writing to socket");
+                }
+                close(newsockfd);
+            } else if (pid > 0) {
+                //elternprozess
+
             }
-
-
-
-        /* if(getpid() != fatherpid && newsockfd != 1 && startport != portno) {
-            printf("test");
-            kill(getpid(),SIGTERM);
-            portno--;
         }
-        */
-
     }
 
 

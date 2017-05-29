@@ -19,12 +19,13 @@ int main(int argc, char *argv[])
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
+
     char buffer[256];
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
        exit(0);
     }
-    portno = 6223;
+    portno = 6670;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         error("ERROR opening socket");
