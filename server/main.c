@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <signal.h>
+#include <sys/shm.h>
 
 //global variables
 int sockfd, newsockfd;
@@ -14,35 +14,60 @@ socklen_t clilen;
 char buffer[256];
 struct sockaddr_in serv_addr, cli_addr;
 int n;
-int portno = 6669;
-char *speicher[20];
+int portno = 3299;
 
-char *put(char *key, char *value, char *res) {
+#define SHM_KEY 0xDEADAFFE
+#define NUMBER_OF_STRINGS 10
+
+char **speicher = NULL;
+int shmid = -1;
+
+void error(const char *msg) {
+    perror(msg);
+    exit(1);
+}
+
+char* put(char *key, char *value, char *res) {
+    res = 0;
+    printf("Value hier : %s\n",value);
+    printf("%d",)
+    int whaikey = atoi(key);
+    whaikey--;
+    if(whaikey < 0) whaikey = 0;
+    if (!speicher[whaikey]) {
+        speicher[whaikey] = value;
+    } else if(speicher[whaikey]){
+        res = speicher[whaikey];
+        speicher[whaikey] = value;
+        return res;
+    }
+    return 0;
+}
+
+char *get(char *key, char *res) {
     int ikey = atoi(key);
-    if (!speicher[ikey]) {
-        speicher[ikey] = value;
-        return 0;
-    } else {
+    ikey--;
+    if(ikey < 0) ikey = 0;
+    if (speicher[ikey]) {
         res = speicher[ikey];
-        speicher[ikey] = value;
+        return res;
+    } else {
+        res = 0;
         return res;
     }
 
 }
 
-char *get(char *key, char *res) {
-    int ikey = atoi(key);
-    if (speicher[ikey]) {
-        res = speicher[ikey];
+void printarray() {
+    for (int i = 0; i < NUMBER_OF_STRINGS; i++) {
+        printf("%s \n",speicher[i]);
 
-    } else {
-        res = 0;
     }
-    return res;
 }
 
 char *delete(char *key, char *res) {
     int ikey = atoi(key);
+    ikey --;
     if (speicher[ikey]) {
         res = speicher[ikey];
         speicher[ikey] = 0;
@@ -52,10 +77,7 @@ char *delete(char *key, char *res) {
     return res;
 }
 
-void error(const char *msg) {
-    perror(msg);
-    exit(1);
-}
+
 
 void socketconstructor() {
     portno++;
@@ -80,6 +102,24 @@ void socketconstructor() {
 
 int main(int argc, char *argv[]) {
 
+
+    //creating the shared segment
+    if ((shmid = shmget(SHM_KEY,
+                        NUMBER_OF_STRINGS * sizeof(char*),
+                        IPC_CREAT | 0600)) < 0) {
+        error("Error in shmget()");
+        return 1;
+    }
+
+    /* attach the shared segment into process's address space */
+    if ((speicher = shmat(shmid, speicher, 0)) == (void *) -1) {
+        error("Error in shmat()");
+        return 1;
+    }
+
+    for (int i = 0; i < NUMBER_OF_STRINGS; i++)
+        speicher[i] = "Hello father,";
+
     socketconstructor();
 
     while (1) {
@@ -89,6 +129,7 @@ int main(int argc, char *argv[]) {
         } else {
             pid_t pid = fork();
             if (pid == 0) {
+
                 //socketconstructor(); not needed anymore since we are forking after accept without creating a new socket
                 int itest = 1;
 
@@ -104,38 +145,16 @@ int main(int argc, char *argv[]) {
                         itest = 0;
                         close(newsockfd);
                     } else {
-
                         char *token;
                         int iC = 0;
-                        char *cRes = 0;
-                        char *cKey = 0;
-                        char *cVar = 0;
-
-                        if (strstr(buffer, "get") != 0 || strstr(buffer, "GET") != 0) {
-                            printf("TEST");
-                            token = strtok(buffer, " ");
+                        char *cRes = "0";
+                        char *cKey = "0";
+                        char *cVar = "0";
+                        token = strtok(buffer," ");
+                        //buffer[0] = 0;
+                        if(strncmp(token,"put",3) == 0 || strncmp(token,"PUT",3) == 0 ) {
                             while (token != NULL) {
-
-                                if (strstr(token, "get") || strstr(token, "GET") || iC > 0) {
-                                    token = strtok(NULL, " ");
-                                }
-                                if (iC == 0) {
-                                    cKey = token;
-                                    token = strtok(NULL, " ");
-                                    iC++;
-                                }
-                            }
-                            get(cKey, cRes);
-
-                            printf("%s", cRes);
-                        }
-
-                        if (strstr(buffer, "put") != 0 || strstr(buffer, "PUT") != 0) {
-                            printf("lul");
-                            token = strtok(buffer, " ");
-                            while (token != NULL) {
-
-                                if (strstr(token, "put") || strstr(token, "put") || iC > 1) {
+                                if (iC > 1 || strncmp(token,"put",3) == 0 || strncmp(token,"PUT",3) == 0 ) {
                                     token = strtok(NULL, " ");
                                 }
                                 if (iC == 0) {
@@ -144,21 +163,20 @@ int main(int argc, char *argv[]) {
                                     iC++;
                                 } else if (iC == 1) {
                                     cVar = token;
-
                                     token = strtok(NULL, " ");
                                     iC++;
                                 }
                             }
-                            printf("%s\n%s\n", cKey, cVar);
+
+                            printf("put call now \n");
                             cRes = put(cKey, cVar, cRes);
-                            printf("%s", cRes);
+                            printf("Return value %s\n",cRes);
+                            printarray();
 
-                            //split buffer now to get the values.
-                        } else if (strstr(buffer, "del") != 0 || strstr(buffer, "DEL") != 0) {
-                            token = strtok(buffer, " ");
+                        };
+                        if (strncmp(buffer, "get",3) == 0 || strncmp(buffer, "GET",3) == 0) {
                             while (token != NULL) {
-
-                                if (strstr(token, "del") || strstr(token, "DEL") || iC > 0) {
+                                if (iC > 0 || strncmp(buffer, "get",3) == 0 || strncmp(buffer, "GET",3) == 0) {
                                     token = strtok(NULL, " ");
                                 }
                                 if (iC == 0) {
@@ -167,9 +185,11 @@ int main(int argc, char *argv[]) {
                                     iC++;
                                 }
                             }
-                            printf("%s", cKey);
+                            printf("get call now\n");
+                            cRes = get(cKey,cRes);
+                            printf("Return value: %s\n",cRes);
+                            
                         }
-                        //printf("%.*s\n",count,buffer);
                     }
                 }
 
@@ -178,7 +198,9 @@ int main(int argc, char *argv[]) {
                     error("ERROR writing to socket");
                 }
                 close(newsockfd);
+
             } else if (pid > 0) {
+
                 //elternprozess
 
             }
@@ -186,5 +208,5 @@ int main(int argc, char *argv[]) {
     }
 
 
-    return 0;
+
 }
