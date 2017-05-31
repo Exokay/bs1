@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/Users/tobiasseemann/Desktop/bs1/bs1/server/main.c
+/Users/tobiasseemann/Desktop/bs1/bs1/serverlul/main.c
 stdio.h
 -
 stdlib.h
@@ -17,10 +17,16 @@ unistd.h
 -
 sys/types.h
 -
+sys/ipc.h
+-
 sys/socket.h
 -
 netinet/in.h
 -
 sys/shm.h
 -
+test.h
+/Users/tobiasseemann/Desktop/bs1/bs1/serverlul/test.h
+
+/Users/tobiasseemann/Desktop/bs1/bs1/serverlul/test.h
 

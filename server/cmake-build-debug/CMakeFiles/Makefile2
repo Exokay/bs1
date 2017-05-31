@@ -54,10 +54,10 @@ RM = /Applications/CLion.app/Contents/bin/cmake/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/tobiasseemann/Desktop/bs1/bs1/server
+CMAKE_SOURCE_DIR = /Users/tobiasseemann/Desktop/bs1/bs1/serverlul
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/tobiasseemann/Desktop/bs1/bs1/server/cmake-build-debug
+CMAKE_BINARY_DIR = /Users/tobiasseemann/Desktop/bs1/bs1/serverlul/cmake-build-debug
 
 #=============================================================================
 # Target rules for target CMakeFiles/untitled1.dir
@@ -66,7 +66,7 @@ CMAKE_BINARY_DIR = /Users/tobiasseemann/Desktop/bs1/bs1/server/cmake-build-debug
 CMakeFiles/untitled1.dir/all:
 	$(MAKE) -f CMakeFiles/untitled1.dir/build.make CMakeFiles/untitled1.dir/depend
 	$(MAKE) -f CMakeFiles/untitled1.dir/build.make CMakeFiles/untitled1.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/tobiasseemann/Desktop/bs1/bs1/server/cmake-build-debug/CMakeFiles --progress-num=1,2 "Built target untitled1"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/tobiasseemann/Desktop/bs1/bs1/serverlul/cmake-build-debug/CMakeFiles --progress-num=1,2 "Built target untitled1"
 .PHONY : CMakeFiles/untitled1.dir/all
 
 # Include target in all.
@@ -76,9 +76,9 @@ all: CMakeFiles/untitled1.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/untitled1.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/tobiasseemann/Desktop/bs1/bs1/server/cmake-build-debug/CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/tobiasseemann/Desktop/bs1/bs1/serverlul/cmake-build-debug/CMakeFiles 2
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/untitled1.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/tobiasseemann/Desktop/bs1/bs1/server/cmake-build-debug/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/tobiasseemann/Desktop/bs1/bs1/serverlul/cmake-build-debug/CMakeFiles 0
 .PHONY : CMakeFiles/untitled1.dir/rule
 
 # Convenience name for target.
