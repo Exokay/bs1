@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <sys/shm.h>
 #include "test.h"
+#include <sys/sem.h>
 
 //global variables
 int sockfd, newsockfd;
@@ -16,11 +17,39 @@ char buffer[256];
 struct sockaddr_in serv_addr, cli_addr;
 int n;
 int portno = 3030;
-
-
-
 int shmid = -1;
 struct data *Data;
+
+
+static struct sembuf semaphore;
+static int semid;
+#define LOCKED       -1
+#define UNLOCKED      1
+static int init_semaphore (void) {
+    // Testen, ob das Semaphor bereits existiert
+    semid = semget (1337, 0, IPC_PRIVATE);
+    if (semid < 0) {
+        //semaphore existiert noch nicht.
+        semid = semget (1337, 1, IPC_CREAT  | 0666);
+        if (semid < 0) {
+            perror("semget");
+        }
+        /* Semaphor mit 1 initialisieren */
+        if (semctl (semid, 0, SETVAL, (int) 1) == -1)
+            return -1;
+    }
+    return 1;
+}
+
+static int sem_controller (int op) {
+    semaphore.sem_op = (short) op;      //setzen der operation (locked/unlocked)
+    semaphore.sem_flg = SEM_UNDO;   // If an operation specifies SEM_UNDO, it will be automatically undone when the process terminates.
+    if( semop (semid, &semaphore, 1) == -1) {       //Fehlerabfrage
+        perror("semop");
+    }
+    return 1;
+}
+
 
 void error(const char *msg) {
     perror(msg);
@@ -47,22 +76,21 @@ int putStruct(char *key, char *value, char *res) {
         }
     }
 
-    strcpy(res,"element angehangen");
+    strcpy(res,"0");
     strcpy(Data->key[Data->size], key);
     strcpy(Data->value[Data->size], value);
     Data->delFlag[Data->size] = 2;
     Data->size++;
-    printf("%s:%s", Data->key[Data->size-1], Data->value[Data->size-1]);
+    printf("put struct funktion %s:%s\n", Data->key[Data->size-1], Data->value[Data->size-1]);
     return 0;
 }
 
 char getStruct(char *key, char *res) {
     for(int i = 0; i < Data->size; i++) {
 
-        printf("%d \n", strcmp(Data->key[i], key));
-        printf("KeyI: %s :[]: Key: %s \n", Data->key[i], key);
         if((strcmp(Data->key[i], key) == 0) && Data->delFlag[i] != 1) {
             strcpy(res,Data->value[i]);        // res <- data
+            printf("getStruct function value: %s\n",res);
             return 0;
         }
     }
@@ -113,6 +141,10 @@ void socketconstructor() {  //socketkonstruktor
 
 
 int main(int argc, char *argv[]) {
+
+    int isemaphore;
+    isemaphore = init_semaphore ();
+
     /* Neues Segment anlegen */
     if ((shmid = shmget(1,
                         sizeof(DATA),
@@ -127,7 +159,7 @@ int main(int argc, char *argv[]) {
     }
 
     Data->size = 0;
-    printf("%d", Data->size );
+    printf("data size : %d\n", Data->size );
     socketconstructor();    //socketconstructor
 
     while (1) {
@@ -143,7 +175,7 @@ int main(int argc, char *argv[]) {
                 while (itest) {
                     int count = recv(newsockfd, buffer, 20, 0); //auslesen der nachricht
                     buffer[count-2] = '\0';
-                    printf("%d",count);
+                    printf("count waow : %d\n",count);
                     if (count == -1) {
                         perror("recv"); // fehler beim abrufen der nachricht
                         close(newsockfd);
@@ -153,6 +185,7 @@ int main(int argc, char *argv[]) {
                         itest = 0;
                         close(newsockfd);
                     } else {
+                        sem_controller ( LOCKED );
                         char *token;
                         int iC = 0;
                         char cRes[2000];
@@ -216,6 +249,7 @@ int main(int argc, char *argv[]) {
                             cRes[strlen(cRes)]= '\n';
                             write(newsockfd,cRes,strlen(cRes));
                         }
+                        sem_controller ( UNLOCKED );
                     }
                 }
 

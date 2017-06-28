@@ -1,3 +1,3 @@
-/Users/tobiasseemann/Desktop/bs1/bs1/serverlul/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/Users/tobiasseemann/Desktop/bs1/bs1/serverlul/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/tobiasseemann/Desktop/bs1/bs1/serverlul/cmake-build-debug/CMakeFiles/untitled1.dir
+/Users/tobiasseemann/Desktop/bs1/bs1/server/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/tobiasseemann/Desktop/bs1/bs1/server/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/tobiasseemann/Desktop/bs1/bs1/server/cmake-build-debug/CMakeFiles/untitled1.dir
