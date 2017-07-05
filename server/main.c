@@ -18,13 +18,34 @@ struct sockaddr_in serv_addr, cli_addr;
 int n;
 int portno = 3030;
 int shmid = -1;
+int shmid2 = -1;
 struct data *Data;
+int *rC;
 
 
 static struct sembuf semaphore;
+static struct sembuf mutex;
 static int semid;
+static int mutexid;
 #define LOCKED       -1
 #define UNLOCKED      1
+
+static int init_mutex (void) {
+    // Testen, ob das Semaphor bereits existiert
+    mutexid = semget (1338, 0, IPC_PRIVATE);
+    if (mutexid < 0) {
+        //semaphore existiert noch nicht.
+        mutexid = semget (1338, 1, IPC_CREAT  | 0666);
+        if (mutexid < 0) {
+            perror("semget");
+        }
+        /* Semaphor mit 1 initialisieren */
+        if (semctl (mutexid, 0, SETVAL, (int) 1) == -1)
+            return -1;
+    }
+    return 1;
+}
+
 static int init_semaphore (void) {
     // Testen, ob das Semaphor bereits existiert
     semid = semget (1337, 0, IPC_PRIVATE);
@@ -45,6 +66,15 @@ static int sem_controller (int op) {
     semaphore.sem_op = (short) op;      //setzen der operation (locked/unlocked)
     semaphore.sem_flg = SEM_UNDO;   // If an operation specifies SEM_UNDO, it will be automatically undone when the process terminates.
     if( semop (semid, &semaphore, 1) == -1) {       //Fehlerabfrage
+        perror("semop");
+    }
+    return 1;
+}
+
+static int mutex_controller (int op) {
+    mutex.sem_op = (short) op;      //setzen der operation (locked/unlocked)
+    mutex.sem_flg = SEM_UNDO;   // If an operation specifies SEM_UNDO, it will be automatically undone when the process terminates.
+    if( semop (mutexid, &mutex, 1) == -1) {       //Fehlerabfrage
         perror("semop");
     }
     return 1;
@@ -144,6 +174,8 @@ int main(int argc, char *argv[]) {
 
     int isemaphore;
     isemaphore = init_semaphore ();
+    int imutex;
+    imutex = init_mutex ();
 
     /* Neues Segment anlegen */
     if ((shmid = shmget(1,
@@ -158,10 +190,24 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    /* Neues Shared Memory Segment */
+    if ((shmid2 = shmget(2, sizeof(int), IPC_CREAT | 0666)) < 0) {
+        error("Error in shmget rc()");
+        return 1;
+    }
+
+    rC = (int *) shmat(shmid2, 0, 0);
+    if(*rC < 0) {
+        perror("shmat");
+    }
+    *rC = 0;
+
     Data->size = 0;
     printf("data size : %d\n", Data->size );
     socketconstructor();    //socketconstructor
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
     while (1) {
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         //accept eingehende verbindung
@@ -175,7 +221,6 @@ int main(int argc, char *argv[]) {
                 while (itest) {
                     int count = recv(newsockfd, buffer, 20, 0); //auslesen der nachricht
                     buffer[count-2] = '\0';
-                    printf("count waow : %d\n",count);
                     if (count == -1) {
                         perror("recv"); // fehler beim abrufen der nachricht
                         close(newsockfd);
@@ -185,7 +230,6 @@ int main(int argc, char *argv[]) {
                         itest = 0;
                         close(newsockfd);
                     } else {
-                        sem_controller ( LOCKED );
                         char *token;
                         int iC = 0;
                         char cRes[2000];
@@ -193,6 +237,7 @@ int main(int argc, char *argv[]) {
                         char *cVar;
                         token = strtok(buffer, " ");    //split der nachricht
                         if (strncmp(token, "put", 3) == 0 || strncmp(token, "PUT", 3) == 0) {   //check auf put
+                            sem_controller ( LOCKED );
                             while (token != NULL) {
                                 if (iC > 1 || strncmp(token, "put", 3) == 0 || strncmp(token, "PUT", 3) == 0) {
                                     token = strtok(NULL, " ");
@@ -208,14 +253,20 @@ int main(int argc, char *argv[]) {
                                 }
                             }
                             printf("put call now \n");
+                            memset(cRes, 0, sizeof(cRes));
                             putStruct(cKey, cVar, cRes);  //put funktion call
                             printf("Return value %s\n",cRes);
                             cRes[strlen(cRes)]= '\n';
                             write(newsockfd,cRes,strlen(cRes)); //message
-
+                            sem_controller ( UNLOCKED );
                         }
 
                         if (strncmp(buffer, "get", 3) == 0 || strncmp(buffer, "GET", 3) == 0) { // siehe oben
+                           mutex_controller(LOCKED);
+                            *rC = *rC+ 1;
+                            if(*rC == 1) {
+                                sem_controller ( LOCKED );
+                            }
                             while (token != NULL) {
                                 if (iC > 0 || strncmp(buffer, "get", 3) == 0 || strncmp(buffer, "GET", 3) == 0) {
                                     token = strtok(NULL, " ");
@@ -227,12 +278,21 @@ int main(int argc, char *argv[]) {
                                 }
                             }
                             printf("get call now\n");
+                           mutex_controller(UNLOCKED);
+                            memset(cRes, 0, sizeof(cRes));
                             getStruct(cKey, cRes);
+                           mutex_controller(LOCKED);
                             printf("Return value: %s\n", cRes);
                             cRes[strlen(cRes)]= '\n';
                             write(newsockfd,cRes,strlen(cRes));
+                            *rC = *rC - 1;
+                            if(*rC ==0 ) {
+                                sem_controller ( UNLOCKED );
+                            }
+                           mutex_controller(UNLOCKED);
                         }
                         if (strncmp(buffer, "del", 3) == 0 || strncmp(buffer, "DEL", 3) == 0) { //siehe oben
+                            sem_controller ( LOCKED );
                             while (token != NULL) {
                                 if (iC > 0 || strncmp(buffer, "del", 3) == 0 || strncmp(buffer, "DEL", 3) == 0) {
                                     token = strtok(NULL, " ");
@@ -244,12 +304,14 @@ int main(int argc, char *argv[]) {
                                 }
                             }
                             printf("del call now\n");
+                            memset(cRes, 0, sizeof(cRes));
                             delStruct(cKey, cRes);
                             printf("Return value: %s\n", cRes);
                             cRes[strlen(cRes)]= '\n';
                             write(newsockfd,cRes,strlen(cRes));
+                            sem_controller ( UNLOCKED );
                         }
-                        sem_controller ( UNLOCKED );
+
                     }
                 }
 
@@ -265,6 +327,7 @@ int main(int argc, char *argv[]) {
             }
         }
     }
+#pragma clang diagnostic pop
 
 
 }
